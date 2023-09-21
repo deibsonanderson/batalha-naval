@@ -1,15 +1,32 @@
 <?php
 session_start();
 
+function debug($valor, $notDie = false) {
+	echo "<pre>";
+	var_dump ( $valor );
+	if (! $notDie) die ();
+}
+
 //************************************** TEMPLATES **********************************************
-function montarCelula($adversario, $valor, $linha, $coluna) {
-    if ($valor == 0) {
-    	//return $valor;
+function montarCelula($adversario, $celula, $linha, $coluna) {
+	if ($celula['codigo'] == 0) {
     	return ($adversario) ? '<a href="core.php?linha=' . $linha . '&coluna=' .$coluna. '"><img src="imagens/grid/0.png" style="border:none" width="25" height="25"></a>' : '<img src="imagens/grid/0.png" style="border:none" width="13" height="13">';
     } else {
-    	//return '<span '.(($valor != 99)?' style="color:red;">'.$valor:'>'.$valor).'</span>';
-    	return ($adversario) ? '<img src="imagens/grid/' . $valor . '.png" width="25" height="25" title="imagem '. $valor .'.png">' : '<img src="imagens/grid/' . $valor . '.png" width="13" height="13" title="imagem '. $valor .'.png">';
+    	$style = 'style="' . definirRotacao( $celula ['vertical'], $celula ['direcao'] ) . '"';
+    	return ($adversario) ? '<img src="imagens/grid/' . $celula['codigo'] . '.png" width="25" height="25" title="imagem '. $celula['codigo'] .'.png" '.$style.' >' : '<img src="imagens/grid/' . $celula['codigo'] . '.png" width="13" height="13" title="imagem '. $celula['codigo'] .'.png" '.$style.' >';
     }
+}
+
+function definirRotacao($isVertical, $isDirecao) {
+	if ($isVertical == 0 && $isDirecao == 0) {
+		return 'transform: rotate(180deg);';
+	} else if ($isVertical == 1 && $isDirecao == 0) {
+		return 'transform: rotate(270deg);';
+	} else if ($isVertical == 0 && $isDirecao == 1) {
+		return 'transform: rotate(0deg);';
+	} else if ($isVertical == 1 && $isDirecao == 1) {
+		return 'transform: rotate(90deg);';
+	}
 }
 
 function montarGrids($adversario, $mascara){
@@ -100,32 +117,44 @@ function exibirMensagemEntreJogadores($contador, $jogador) {
 	}
 }
 
+// operação responsavel por gerar um boolean randomico
+function gerarBooleano(){
+	return rand(0,1) == 1;
+}
+
+//Esse array tera as informações de direção e verticalidade para guiar o rotacionamento das imagens
+function gerarConteudoCelula($codigo,  $isVertical, $isDirecao){
+	return array ('codigo' => $codigo,	'vertical' => $isVertical, 'direcao' => $isDirecao );
+}
+
 function montarMapaDinamico(){
-	$embarcacoes = array(//1 => array(11),
-						 2 => array(21,22),
-						 3 => array(31,32,33),
-						 4 => array(41,42,43,44),
-						 5 => array(51,52,53,54,55));
+	$embarcacoes = array(
+			1 => array('vertical' => 0, 'direcao' => 1, 'embarcacao' => array(11)),
+			2 => array('vertical' => gerarBooleano(), 'direcao' => gerarBooleano(), 'embarcacao' => array(21,22)),
+			3 => array('vertical' => gerarBooleano(), 'direcao' => gerarBooleano(), 'embarcacao' => array(31,32,33)),
+			4 => array('vertical' => gerarBooleano(), 'direcao' => gerarBooleano(), 'embarcacao' => array(41,42,43,44)),
+			5 => array('vertical' => gerarBooleano(), 'direcao' => gerarBooleano(), 'embarcacao' => array(51,52,53,54,55))
+	);
 	
 	$mapa = array();
 	for($l = 0; $l < 10; $l++){
 		for($c = 0; $c < 10; $c++){
-			$mapa[$l][$c] = 99;
+			$mapa[$l][$c] = gerarConteudoCelula(99, 0, 0);
 		}
 	}
 	
 	//ESSE BLOCO FOI INVERTIDO PARA MELHOR PERFORMANCE DIMINUINDO A CHANCE DE COLIXÕES ENTRE OS NAVIOS
 	foreach (array_reverse($embarcacoes) as $embarcacao){
-		$isVertical = rand(0,1) == 1;
-		$isDirecao = rand(0,1) == 1;
+	
+		$tamanho = count($embarcacao['embarcacao']);
 		
-		$tamanho = count($embarcacao);
-		$posicao = sortearPosicaoInicialBarco($mapa, $isVertical, $isDirecao, $tamanho);
+		$posicao = sortearPosicaoInicialBarco($mapa, $embarcacao['vertical'], $embarcacao['direcao'], $tamanho);
 		
-		foreach ( $embarcacao as $emb ) {
-			$linha = ($isVertical == 1) ? (($isDirecao == 0) ? $posicao[0]-- : $posicao[0]++) : $posicao[0];
-			$coluna = ($isVertical == 1) ? $posicao[1] : (($isDirecao == 0) ? $posicao[1]-- : $posicao[1]++);
-			$mapa [$linha][$coluna] = $emb;
+		foreach ( $embarcacao['embarcacao'] as $emb ) {
+			$linha = ($embarcacao['vertical'] == 1) ? (($embarcacao['direcao'] == 0) ? $posicao[0]-- : $posicao[0]++) : $posicao[0];
+			$coluna = ($embarcacao['vertical'] == 1) ? $posicao[1] : (($embarcacao['direcao'] == 0) ? $posicao[1]-- : $posicao[1]++);
+		
+			$mapa [$linha][$coluna] = gerarConteudoCelula ($emb, $embarcacao['vertical'], $embarcacao['direcao']);
 		}
 		
 	}
@@ -141,7 +170,7 @@ function sortearPosicaoInicialBarco($mapa, $isVertical, $isDirecao, $tamanho){
 		$filtred = array();
 		for($l = 0; $l < 10; $l ++) {
 			for($c = 0; $c < 10; $c ++) {
-				if ($mapa[$l][$c] == 99						
+				if ($mapa[$l][$c]['codigo'] == 99						
 						&& checarDirecaoTamanhoVertical($c, $isDirecao, $tamanho, $isVertical) 
 			 			&& checarDirecaoTamanhoHorizontal($l, $isDirecao, $tamanho, $isVertical)){
 						$filtred[$l][$c] = 99;
@@ -164,13 +193,13 @@ function validarIntercessao($sorteado, $mapa, $isVertical, $isDirecao, $tamanho)
 	if($isVertical == 1){
 		if($isDirecao == 1) {
 			for ($i = $sorteado[0]; $i <= ($sorteado[0] + $tamanho); $i++) {
-				if($mapa[$i][$sorteado[1]] != 99){
+				if($mapa[$i][$sorteado[1]]['codigo'] != 99){
 					return false;
 				}
 			}			
 		} else {			
 			for ($i = $sorteado[0]; $i >= ($sorteado[0] - $tamanho); $i--) {
-				if($mapa[$i][$sorteado[1]] != 99){
+				if($mapa[$i][$sorteado[1]]['codigo'] != 99){
 					return false;
 				}
 			}
@@ -178,13 +207,13 @@ function validarIntercessao($sorteado, $mapa, $isVertical, $isDirecao, $tamanho)
 	} else {
 		if($isDirecao == 1) {			
 			for ($i = $sorteado[1]; $i <= ($sorteado[1] + $tamanho); $i++) {
-				if($mapa[$sorteado[0]][$i] != 99){
+				if($mapa[$sorteado[0]][$i]['codigo'] != 99){
 					return false;
 				}
 			}			
 		} else {			
 			for ($i = $sorteado[1]; $i >= ($sorteado[1] - $tamanho); $i--) {
-				if($mapa[$sorteado[0]][$i] != 99){
+				if($mapa[$sorteado[0]][$i]['codigo'] != 99){
 					return false;
 				}
 			}
@@ -291,15 +320,15 @@ if(isset($_SESSION["tabela1"]) && isset($_SESSION["tabela2"])){
         	$mascara[$l][$c] = 0;
         }    	
     }   
-    echo '<pre>';
+
     $temp =  montarMapaDinamico();
-        
+    
     $_SESSION["play"] = 1;
     $_SESSION["placar1"] = $_SESSION["placar2"] = 0;
     $_SESSION["mascara1"] = $_SESSION["mascara2"] = $temp;//$mascara;
     $_SESSION["contador1"] = $_SESSION["contador2"] = 25;
-    $_SESSION["tabela1"] = $temp;
-    $_SESSION["tabela2"] = $temp;
+    $_SESSION["tabela1"] = $temp; //montarMapaDinamico();
+    $_SESSION["tabela2"] = $temp; //montarMapaDinamico();
     
     echo exibirMensagemEntreJogadores($_SESSION["contador2"], $_SESSION["jogador1"]);
     
