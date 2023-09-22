@@ -1,6 +1,6 @@
 <?php
 session_start();
-unset ( $_SESSION ["jogador1"], $_SESSION ["jogador2"] );
+unset ( $_SESSION ["jogador1"], $_SESSION ["jogador2"],$_SESSION ["tabela1"], $_SESSION ["tabela2"] );
 $_SESSION ["jogador1"] = $_POST ["jogador1"];
 $_SESSION ["jogador2"] = 'Maquina';
 ?>

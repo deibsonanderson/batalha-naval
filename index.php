@@ -1,9 +1,4 @@
-﻿<?php
-session_start();
-unset ( $_SESSION ["jogador1"], $_SESSION ["jogador2"] );
-unset ( $_SESSION ["placar1"], $_SESSION ["tabela1"], $_SESSION ["mascara1"], $_SESSION ["contador1"], $_SESSION ["play"], $_SESSION ["placar2"], $_SESSION ["tabela2"], $_SESSION ["mascara2"], $_SESSION ["contador2"] );
-?>
-<html>
+﻿<html>
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<title>BATALHA NAVAL</title>
