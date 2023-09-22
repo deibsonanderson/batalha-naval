@@ -77,10 +77,20 @@ function prepararBackGround($play){
     'bgcolor="#DCD1A3" style="background:url(imagens/background/vietnam_war.jpg) no-repeat center fixed"';
 }
 
-
+function reproduzirSomAtaque($som){
+	return ($som == 1)?'<EMBED SRC="sounds/Bomb2.wav" hidden="true" VOLUME="50"></EMBED>':'';
+}
 
 //************************************** CORE **********************************************
+//bloco responsavel por gerar o mapa aleatorio
+//  NAVIO        (11) = 1 PONTO   (Opicional)
+//  DESTROYER    (21;22) =  2 PONTOS
+//  SUBMARINO    (31;32;33) = 3 PONTOS
+//  ENCOURAÇADO  (41;42;43;44) =  4 PONTOS
+//  PORTA-AVIÕES (51;52;53;54;55) =  5 PONTOS
+// BLOCO DE CONTROLE DA PROGRAMAÇÃO DO JOGO
 function calcularPontuacao($linha, $coluna, $tabela, $jogador, $play){
+	$som = false;
     $pontuacao = array(11 => 1,
         21 => 2, 22 => 2, 23 => 2, 24 => 2,
         31 => 3, 32 => 3, 33 => 3, 34 => 3, 35 => 3, 36 => 3,
@@ -90,31 +100,22 @@ function calcularPontuacao($linha, $coluna, $tabela, $jogador, $play){
 
     $ponto = $pontuacao[ $tabela[$linha][$coluna]['codigo'] ];
     if($ponto > 0){
-        if($play == 1){
+    	if($play == 1){
             $_SESSION["placar1"] = $_SESSION["placar1"] + $ponto;
             $_SESSION["contador1"]--;
         } else {
             $_SESSION["placar2"] = $_SESSION["placar2"] + $ponto;
             $_SESSION["contador2"]--;
         }
-        $html = '';
-        //$html .= '<script>window.alert("JOGADOR ('.$jogador.') MARCOU UM PONTO");</script>';
-        $html .= '<body><EMBED SRC="sounds/Bomb2.wav" hidden="true" VOLUME="50"></EMBED></body>';
-    	return $html;
+    	$som = true;
     }
+    return $som;
 }
 
-function validarFinalDoJogo($contador, $play) {
-	if ($contador == 0) {
+function validarFinalDoJogo($play) {
+	if ($_SESSION["contador".$play] <= 0) {
 		header('location: vitoria.php?play=' . $play);
-	}
-}
-
-function exibirMensagemEntreJogadores($contador, $jogador) {
-	if ($contador != 0) {
-		//TODO: desativado temporariamente
-		return '';//'<script>window.alert("JOGADOR ( ' . $jogador . ' ) SUA VEZ");</script>';
-	}
+	}	
 }
 
 // operação responsavel por gerar um boolean randomico
@@ -248,118 +249,127 @@ function checarDirecaoTamanhoHorizontal($posicao, $direcao, $tamanho, $isVertica
 	}
 }
 
-//bloco responsavel por gerar o mapa aleatorio
-//  NAVIO        (11) = 1 PONTO   (Opicional)
-//  DESTROYER    (21;22) =  2 PONTOS
-//  SUBMARINO    (31;32;33) = 3 PONTOS
-//  ENCOURAÇADO  (41;42;43;44) =  4 PONTOS
-//  PORTA-AVIÕES (51;52;53;54;55) =  5 PONTOS
-// BLOCO DE CONTROLE DA PROGRAMAÇÃO DO JOGO
+function iniciarMascaraSetup(){
+	$mascara = array();
+	for($l = 0;$l < 10;$l++){
+		for ($c = 0; $c < 10; $c++) {
+			$mascara[$l][$c] = 0;
+		}
+	}
+	return $mascara;
+}
+
+function resetarSessoesSetup(){
+	unset($_SESSION["placar1"],
+			$_SESSION["tabela1"],
+			$_SESSION["mascara1"],
+			$_SESSION["contador1"],
+			$_SESSION["play"],
+			$_SESSION["placar2"],
+			$_SESSION["tabela2"],
+			$_SESSION["mascara2"],
+			$_SESSION["contador2"]);
+}
+
+function selecionarCelularPelaIA($oponente, $contador, $som){
+	if($contador > 0){
+		$filtred = array();
+		for($l = 0; $l < 10; $l ++) {
+			for($c = 0; $c < 10; $c ++) {
+				if ($oponente[$l][$c]['codigo'] != 0) {
+					$filtred[$l][$c] = 99;
+				}
+			}
+		}
+		$linha = array_rand($filtred);
+		$coluna = array_rand($filtred[$linha]);
+		header("location: core.php?linha=".$linha."&coluna=".$coluna."&som=".$som);
+	}
+}
+
+function atualizarMascaraTabela($linha, $coluna, $play){
+	$tabela = $_SESSION["tabela".$play];
+	$mascara = $_SESSION["mascara".$play];
+	$mascara[$linha][$coluna] = $tabela[$linha][$coluna];
+	$_SESSION["mascara".$play] = $mascara;
+	return $tabela;
+}
+
+function exibirMensagemEntreJogadores($contador, $jogador) {
+	if ($contador != 0) {
+		//TODO: desativado temporariamente
+		return '';//'<script>window.alert("JOGADOR ( ' . $jogador . ' ) SUA VEZ");</script>';
+	}
+}
+
 // *************************** CORE **************************************
 if(isset($_SESSION["tabela1"]) && isset($_SESSION["tabela2"])){
     
-    //BLOCO QUE INICIA AS VARIAVEIS A SER USADA SEJA PLAY 1 OU PLAY 2
-    $tabela = array();
-    $linha = $_GET["linha"];
-    $coluna = $_GET["coluna"];
-    $mascara = array();
-    $jogador = 0;
-    
-    //TODO: SIMPLIFICAR ESSE IF QUE FAZ AS MESMAS COISAS COM DIFERENÇA QUE USAM CONTROLADORES DIFERENTES UMA POSSIBILIDADE É TER ARRAYS PARA CONTROLAR PLAYER 1 E 2 COM POSICIONAMENTO
-    //VARIAVEIS RESPONSAVEIS PELATROCA DEDADOS ENTRE OS ARRAYS E SESSIONS
-    if($_SESSION["play"] == 1) {
-    	
-        $tabela = $_SESSION["tabela1"];
-        $mascara = $_SESSION["mascara1"];
-        $jogador = $_SESSION["jogador1"];        
-        $mascara[$linha][$coluna] = $tabela[$linha][$coluna];
-        $_SESSION["mascara1"] = $mascara;
-        $_SESSION["play"] = 2;        
+    if($_SESSION["play"] == 1) {    	
         
-        echo calcularPontuacao($linha, $coluna, $tabela, $jogador, $_SESSION["play"]);
-        validarFinalDoJogo($_SESSION["contador1"], $_SESSION["play"]);    
-        echo exibirMensagemEntreJogadores($_SESSION["contador1"], $_SESSION["jogador2"]);
-    		
-    } else {	
-    	
-        $tabela = $_SESSION["tabela2"];
-        $mascara = $_SESSION["mascara2"];
-        $jogador = $_SESSION["jogador2"];
-        $mascara[$linha][$coluna] = $tabela[$linha][$coluna];
-        $_SESSION["mascara2"] = $mascara;
-        $_SESSION["play"] = 1;	
+    	$som = calcularPontuacao($_GET["linha"], $_GET["coluna"], 
+    			atualizarMascaraTabela($_GET["linha"], $_GET["coluna"], $_SESSION["play"]), 
+    			$_SESSION["jogador1"], $_SESSION["play"]);
+        validarFinalDoJogo($_SESSION["play"]);    
+        $_SESSION["play"] = 2;
+        selecionarCelularPelaIA($_SESSION["tabela2"], $_SESSION["contador1"], $som);
+        //echo exibirMensagemEntreJogadores($_SESSION["contador1"], $_SESSION["jogador2"]);        
         
-        echo calcularPontuacao($linha, $coluna, $tabela, $jogador, $_SESSION["play"]);
-        validarFinalDoJogo($_SESSION["contador2"], $_SESSION["play"]);
-        echo exibirMensagemEntreJogadores($_SESSION["contador2"], $_SESSION["jogador1"]);
-
+    } else if($_SESSION["play"] == 2) {    	
+    	
+    	$som = calcularPontuacao($_GET["linha"], $_GET["coluna"], 
+    			atualizarMascaraTabela($_GET["linha"], $_GET["coluna"], $_SESSION["play"]), $_SESSION["jogador2"], $_SESSION["play"]);        
+        validarFinalDoJogo($_SESSION["play"]);        
+        $_SESSION["play"] = 1;
+        echo reproduzirSomAtaque($som);        
+        //echo exibirMensagemEntreJogadores($_SESSION["contador2"], $_SESSION["jogador1"]);
     }
         
 } else {
 // **************************** SETUP ******************************************    
-    unset($_SESSION["placar1"],
-    	  $_SESSION["tabela1"],
-   		  $_SESSION["mascara1"],
-	   	  $_SESSION["contador1"],
-   		  $_SESSION["play"],
-   		  $_SESSION["placar2"],
-   		  $_SESSION["tabela2"],
-   		  $_SESSION["mascara2"],
-   		  $_SESSION["contador2"]);
+	resetarSessoesSetup();
     
-    // Esse bloco é do iframe desativado temporariamente
-    unset($_SESSION["jogador1"], $_SESSION["jogador2"]);
-    $_SESSION["jogador1"] = $_POST["jogador1"];
-    $_SESSION["jogador2"] = $_POST["jogador2"];
-    // Esse bloco é do iframe desativado temporariamente
-    
-    //*********************************************************************************************************************************
-    $mascara = array();
-    for($l = 0;$l < 10;$l++){
-        for ($c = 0; $c < 10; $c++) {
-        	$mascara[$l][$c] = 0;
-        }    	
-    }   
-
-    $temp =  montarMapaDinamico();
-    
-    $_SESSION["play"] = 1;
-    $_SESSION["placar1"] = $_SESSION["placar2"] = 0;
-    $_SESSION["mascara1"] = $_SESSION["mascara2"] = $mascara;
-    $_SESSION["contador1"] = $_SESSION["contador2"] = 25;
-    $_SESSION["tabela1"] = $temp; //montarMapaDinamico();
-    $_SESSION["tabela2"] = $temp; //montarMapaDinamico();
-    
-    echo exibirMensagemEntreJogadores($_SESSION["contador2"], $_SESSION["jogador1"]);
+    $_SESSION["play"] = 1; //essa variavel é responsavel por indicar quem esta jogando no inicio é o 1
+    $_SESSION["placar1"] = $_SESSION["placar2"] = 0; //setup inicil dos placares
+    $_SESSION["mascara1"] = $_SESSION["mascara2"] = iniciarMascaraSetup(); //setup inicial das mascaras, que será subistituido aos poucos pelos mapa 
+    $_SESSION["contador1"] = $_SESSION["contador2"] = 15; //o contador dos navios restantes 
+    $_SESSION["tabela1"] = montarMapaDinamico(); //essa variavel armazena o (mapa) posicionamento dos navios e dos mares que sera o guia da mascara
+    $_SESSION["tabela2"] = montarMapaDinamico(); //essa variavel armazena o (mapa) posicionamento dos navios e dos mares que sera o guia da mascara
+    //echo exibirMensagemEntreJogadores($_SESSION["contador2"], $_SESSION["jogador1"]);
     
 }
 ?> 
 <!-- *********************************************** HTML ********************************************* -->
+<head>
+	<link rel="stylesheet" type="text/css" href="css/style.css" media="screen" />
+</head>
 <body <?php echo prepararBackGround($_SESSION["play"]); ?> >
-	<table border="0" align="center">		
+	<table class="center">		
 		<tr>
-			<td align="center">			
-    			<?php 
-    			    $joutro = ($_SESSION["play"] == 1) ? $_SESSION["jogador2"] : $_SESSION["jogador1"];
-                    echo montarTabelas(2, $joutro, 'MEU CAMPO DE BATALHA DE ', false); 
-    			?>
-            </td>
-			<td width="100"></td>
 			<td align="center">
-    			<?php
-    			    $jogador = ($_SESSION["play"] == 1) ? $_SESSION["jogador1"] : $_SESSION["jogador2"];
-    			    echo montarTabelas(1, $jogador, 'CAMPO DE BATALHA DO ADVERSARIO DE ', true); ?>       
+    			<?php echo montarTabelas(1, $_SESSION["jogador2"], 'CAMPO DE BATALHA DO ADVERSARIO: ', true); ?>       
 			</td>
+			<td width="10"></td>
+			<td align="center">			
+    			<?php echo montarTabelas(2, $_SESSION["jogador1"], 'CAMPO DE BATALHA DO JOGADOR: ', false); ?>
+            </td>
 		</tr>
-		<tr>
-			<td colspan="2">
-				<font size="+2"> <b>JOGADOR: <?php echo $jogador; ?></b>
-    				<br /> <b>PONTUACAO ATUAL: <?php echo ($_SESSION["play"] == 1) ? $_SESSION["placar1"] : $_SESSION["placar2"]; ?> PONTOS</b><br />
-					<b>NAVOIS RESTANTES DO OPONENTE: <?php echo ($_SESSION["play"] == 1) ? $_SESSION["contador2"] : $_SESSION["contador1"]; ?></b><br />
+		<tr>			
+			<td>
+				<font size="+1"> <b>JOGADOR: <?php echo $_SESSION["jogador1"]; ?></b>
+    				<br /> <b>PONTUACAO ATUAL: <?php echo $_SESSION["placar1"]; ?> PONTOS</b><br />
+					<b>NAVOIS RESTANTES DO OPONENTE: <?php echo $_SESSION["contador2"]; ?></b><br />
 				</font>
 			</td>
-			<!--<td width="294" >&nbsp;</td> -->
+			<td>&nbsp;</td>
+			<td>
+				<font size="+1"> <b>JOGADOR: <?php echo $_SESSION["jogador2"]; ?></b>
+    				<br /> <b>PONTUACAO ATUAL: <?php echo $_SESSION["placar2"]; ?> PONTOS</b><br />
+					<b>NAVOIS RESTANTES DO OPONENTE: <?php echo $_SESSION["contador1"]; ?></b><br />
+				</font>
+			</td>			
 		</tr>
 	</table>
-	<a href="index.php">Voltar</a>
+	<!--a href="index.php">Voltar</a-->
 </body>
+<?php echo reproduzirSomAtaque($_GET["som"]); ?>
