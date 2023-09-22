@@ -88,7 +88,7 @@ function calcularPontuacao($linha, $coluna, $tabela, $jogador, $play){
         51 => 5, 52 => 5, 53 => 5, 54 => 5, 55 => 5,
         99 => 0);
 
-    $ponto = $pontuacao[ $tabela[$linha][$coluna] ];
+    $ponto = $pontuacao[ $tabela[$linha][$coluna]['codigo'] ];
     if($ponto > 0){
         if($play == 1){
             $_SESSION["placar1"] = $_SESSION["placar1"] + $ponto;
@@ -325,7 +325,7 @@ if(isset($_SESSION["tabela1"]) && isset($_SESSION["tabela2"])){
     
     $_SESSION["play"] = 1;
     $_SESSION["placar1"] = $_SESSION["placar2"] = 0;
-    $_SESSION["mascara1"] = $_SESSION["mascara2"] = $temp;//$mascara;
+    $_SESSION["mascara1"] = $_SESSION["mascara2"] = $mascara;
     $_SESSION["contador1"] = $_SESSION["contador2"] = 25;
     $_SESSION["tabela1"] = $temp; //montarMapaDinamico();
     $_SESSION["tabela2"] = $temp; //montarMapaDinamico();
